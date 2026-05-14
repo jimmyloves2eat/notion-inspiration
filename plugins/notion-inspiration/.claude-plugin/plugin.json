@@ -1,0 +1,5 @@
+{
+  "name": "notion-inspiration",
+  "description": "把網址或圖片自動分類並存到 Notion 靈感板 Ideas Pool",
+  "version": "1.0.0"
+}
