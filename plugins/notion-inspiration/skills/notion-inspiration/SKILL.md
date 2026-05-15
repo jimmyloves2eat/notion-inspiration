@@ -281,6 +281,25 @@ curl -I -L -A "Mozilla/5.0" --max-time 8 -s -o /dev/null \
 ```
 
 ### Step 4：發送資料到 GAS 中繼站
+🚨 **GAS 回應的特殊行為（一定要看完，避免重試造成 Notion 重複卡片）**：
+
+Google Apps Script 的 web app 永遠會回傳 **302 redirect → script.googleusercontent.com → 真正的 JSON**。這是 GAS 的**正常設計**，不是錯誤。
+
+**處理方式**：
+- ✅ 只用下面的 Python + curl 程式碼，不要用 WebFetch 或其他工具呼叫 GAS
+- ✅ `curl -s -L` 會自動跟隨 redirect，把最終 JSON 放在 `result.stdout`
+- ✅ **看 `result.stdout` 內容是否是 JSON 且 `status == "success"`，這才是判斷依據**
+- ❌ **絕對不要看到 302/redirect/HTML 就重試**（會在 Notion 建出重複卡）
+- ❌ **不要加 `-X POST`**（會強迫 redirect 也用 POST，導致真的 404）
+- ❌ 不要用 WebFetch（它對 POST 跟 redirect 的處理不可預期）
+
+**只有以下情況才算失敗**：
+1. `result.returncode != 0`（curl 本身執行錯誤）
+2. `result.stdout` 不是有效 JSON（網路完全中斷或 GAS 真的死了）
+3. JSON 內 `status == "error"`
+
+其他任何情況（包含看到 redirect 字樣、HTML 內容混在 stdout 開頭）都**不要重試**，直接回報結果。
+
 
 使用者確認後（且已依「密鑰處理」章節拿到密鑰），用 Python 將資料發送給 Webhook：
 
